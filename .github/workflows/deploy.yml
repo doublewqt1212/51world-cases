@@ -1,0 +1,26 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          persist-credentials: false
+      - name: Upload index.html
+        run: |
+          curl -sL "https://raw.githubusercontent.com/doublewqt1212/51world-cases/main/index.html" -o index.html
+      - name: Commit & Push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --staged --quiet && echo 'No changes' || git commit -m "Deploy $(date '+%Y-%m-%d %H:%M:%S')"
+          git push origin gh-pages --force
