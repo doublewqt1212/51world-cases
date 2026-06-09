@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920, initial-scale=1">
+  <title>广州农信数据中心 IOC - 智慧运维 v2</title>
+  <style>
+/* ===========================================
+   原版版式: 16:9 宽屏 + 顶部/底部导航 + 左右25%面板 + 中间40% 3D
+   配色: 深蓝+青色发光边（与原版一致）
+   =========================================== */
+:root {
+  --bg: linear-gradient(180deg, #0a1c30 0%, #04111a 100%);
+  --panel-bg: linear-gradient(180deg, rgba(36, 53, 65, 0.62), rgba(24, 41, 54, 0.62));
+  --panel-border: rgba(58, 200, 224, 0.34);
+  --cyan: #3ac8e0; --green: #68e0b6; --orange: #f0aa5a; --red: #ff7875; --blue: #8fb7ff;
+  --text: #eaf0f5; --muted: #96a5af;
+  --font: "Microsoft YaHei", "Noto Sans SC", "PingFang SC", Arial, sans-serif;
+  --num: "DIN Alternate", "Bahnschrift", "Microsoft YaHei", sans-serif;
+  --radius: 14px;
+}
+* { box-sizing: border-box; }
+html, body {
+  width: 1920px; height: 1080px; margin: 0; overflow: hidden;
+  background: var(--bg);
+  font-family: var(--font); color: var(--text);
+  font-size: 14px;
+}
+
+/* 整体布局: 顶/中(左+中+右)/底 */
+.layout { display: grid; grid-template-rows: 60px 1fr 60px; height: 100vh; }
+
+/* ============= 顶部标题栏 ============= */
+.topbar {
+  display: grid; grid-template-columns: 360px 1fr 360px;
+  align-items: center; padding: 0 30px;
+  background: linear-gradient(180deg, rgba(8, 24, 38, 0.96), rgba(8, 24, 38, 0.62));
+  border-bottom: 1px solid rgba(58, 200, 224, 0.26);
+  position: relative;
+}
+.topbar::after {
+  content: ""; position: absolute; left: 50%; bottom: -1px; width: 600px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  transform: translateX(-50%);
+}
+.topbar-time {
+  display: flex; align-items: center; gap: 18px;
+  font-size: 14px; color: var(--muted);
+}
+.topbar-time .date { font-size: 18px; color: var(--text); font-weight: 600; }
+.topbar-time .time { font-size: 18px; color: var(--cyan); font-family: var(--num); font-weight: 700; }
+.topbar-title { text-align: center; position: relative; }
+.topbar-title h1 {
+  margin: 0; font-size: 26px; font-weight: 700; color: #f2fbff;
+  text-shadow: 0 0 16px rgba(58, 200, 224, 0.46);
+  letter-spacing: 0.08em;
+}
+.topbar-title .en {
+  margin-top: 2px; font-size: 11px; color: var(--muted);
+  letter-spacing: 0.16em; font-weight: 500;
+}
+.topbar-weather {
+  display: flex; align-items: center; justify-content: flex-end; gap: 14px;
+  font-size: 14px; color: var(--muted);
+}
+.topbar-weather .icon {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg, #5a8fa8, #3a6b85);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: #fff;
+}
+.topbar-weather .temp { font-size: 22px; color: var(--cyan); font-family: var(--num); font-weight: 700; }
+.topbar-weather .gear { color: var(--muted); font-size: 18px; cursor: pointer; }
+
+/* ============= 中间三栏 ============= */
+.main { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: 16px; padding: 16px; min-height: 0; }
+
+/* 左右侧面板通用 */
+.side {
+  display: flex; flex-direction: column; gap: 14px; min-height: 0; overflow: hidden;
+}
+.panel-card {
+  position: relative; border-radius: var(--radius); border: 1px solid var(--panel-border);
+  background: var(--panel-bg); padding: 12px 16px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+  min-height: 0;
+}
+.panel-card::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(58,200,224,0.10), transparent 36%);
+  border-radius: var(--radius);
+}
+.panel-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 16px; font-weight: 700; color: #eaf8ff; margin-bottom: 10px;
+}
+.panel-title::before {
+  content: ""; width: 8px; height: 8px; border-radius: 2px;
+  border: 1.5px solid rgba(94, 224, 244, 0.72);
+  background: rgba(58, 200, 224, 0.20);
+  box-shadow: 0 0 8px rgba(58, 200, 224, 0.45);
+}
+.panel-title .extra { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--muted); }
+
+/* ============= 中间 3D 区域 ============= */
+.center {
+  position: relative; border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(8, 24, 38, 0.4), rgba(8, 24, 38, 0.6));
+  border: 1px solid rgba(58, 200, 224, 0.18);
+  overflow: hidden;
+  min-height: 0;
+}
+.center-bg {
+  position: absolute; inset: 0; background-size: cover; background-position: center;
+  background-image: url('./v2场景图/原版效果-图2.jpg');
+  filter: brightness(0.85) saturate(0.95);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-color: #04111a;
+}
+.center-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(8, 24, 38, 0.4) 0%, transparent 25%, transparent 75%, rgba(8, 24, 38, 0.5) 100%);
+}
+
+/* 3D 场景上的可点击标注点 */
+.hotspot {
+  position: absolute; z-index: 5; cursor: pointer;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 0 4px rgba(58,200,224,0.25), 0 0 20px rgba(58,200,224,0.7);
+  animation: pulse 2.2s ease-in-out infinite;
+  transition: transform 0.2s;
+}
+.hotspot::after {
+  content: ""; position: absolute; inset: -6px; border-radius: 50%;
+  border: 2px solid var(--cyan); opacity: 0.5; animation: ripple 2.2s ease-out infinite;
+}
+.hotspot:hover { transform: scale(1.4); }
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(58,200,224,0.25), 0 0 20px rgba(58,200,224,0.7); }
+  50% { box-shadow: 0 0 0 8px rgba(58,200,224,0.12), 0 0 32px rgba(58,200,224,0.95); }
+}
+@keyframes ripple {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.hotspot-label {
+  position: absolute; top: 24px; left: 50%; transform: translateX(-50%);
+  white-space: nowrap; font-size: 12px; color: #c9f6ff;
+  background: rgba(8, 24, 38, 0.85); padding: 2px 8px; border-radius: 4px;
+  border: 1px solid rgba(58,200,224,0.42);
+  pointer-events: none;
+}
+
+/* 中间底部信息条 */
+.center-bottom {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 6;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(180deg, transparent, rgba(8, 24, 38, 0.85) 60%);
+}
+.center-stat {
+  text-align: center; padding: 6px 0;
+  border-right: 1px solid rgba(58, 200, 224, 0.18);
+}
+.center-stat:last-child { border-right: none; }
+.center-stat .num { font-size: 22px; color: var(--cyan); font-family: var(--num); font-weight: 700; }
+.center-stat .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* ============= 底部 Tab 导航 ============= */
+.tabs {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  background: linear-gradient(180deg, rgba(8, 24, 38, 0.62), rgba(8, 24, 38, 0.96));
+  border-top: 1px solid rgba(58, 200, 224, 0.26);
+  position: relative;
+}
+.tabs::before {
+  content: ""; position: absolute; left: 50%; top: 0; width: 1000px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  transform: translateX(-50%);
+}
+.tab {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 30px; cursor: pointer;
+  font-size: 16px; color: var(--muted);
+  border: 1px solid transparent; border-radius: 8px;
+  transition: all 0.2s;
+}
+.tab .tab-icon {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: rgba(58, 200, 224, 0.08);
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.tab:hover { color: var(--text); }
+.tab.active {
+  color: var(--cyan); background: linear-gradient(180deg, rgba(58,200,224,0.18), rgba(58,200,224,0.06));
+  border-color: rgba(58,200,224,0.42);
+  box-shadow: 0 0 18px rgba(58,200,224,0.25);
+  text-shadow: 0 0 8px rgba(58,200,224,0.5);
+}
+.tab.active .tab-icon { background: rgba(58, 200, 224, 0.22); }
+
+/* ===========================================
+   各面板内容 (智慧运维模块)
+   =========================================== */
+
+/* 设备状态 KPI 4 卡 (左侧顶) */
+.kpi-row4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.kpi-cell {
+  text-align: center; padding: 12px 6px;
+  background: linear-gradient(180deg, rgba(58,200,224,0.06), transparent 70%), rgba(18, 34, 46, 0.42);
+  border-radius: 8px; border: 1px solid rgba(58, 200, 224, 0.12);
+}
+.kpi-cell .v { font-size: 28px; font-family: var(--num); font-weight: 700; line-height: 1; }
+.kpi-cell .l { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.kpi-cell .v.good { color: var(--green); }
+.kpi-cell .v.warn { color: var(--orange); }
+.kpi-cell .v.normal { color: var(--text); }
+
+/* 列表类 */
+.list { display: flex; flex-direction: column; gap: 6px; height: 100%; overflow: hidden; }
+.list-row {
+  display: grid; grid-template-columns: 70px 1fr 60px;
+  align-items: center; gap: 8px; padding: 8px 10px 8px 22px;
+  border-radius: 6px; font-size: 12px;
+  background: linear-gradient(90deg, rgba(58, 200, 224, 0.04), transparent 60%), rgba(10, 25, 37, 0.28);
+  border: 1px solid rgba(58, 200, 224, 0.08);
+  position: relative;
+}
+.list-row.clickable { cursor: pointer; transition: all 0.2s; }
+.list-row.clickable:hover { transform: translateX(2px); border-color: rgba(58, 200, 224, 0.42); }
+.list-row::before {
+  content: ""; position: absolute; left: 8px; top: 50%;
+  width: 5px; height: 5px; border-radius: 50%; background: var(--cyan);
+  transform: translateY(-50%);
+  box-shadow: 0 0 6px rgba(58, 200, 224, 0.45);
+}
+.list-row .tag {
+  font-size: 10px; padding: 2px 6px; border-radius: 10px;
+  border: 1px solid rgba(58, 200, 224, 0.24);
+  background: rgba(58, 200, 224, 0.10);
+  color: #c9f6ff; text-align: center;
+}
+.list-row .main { min-width: 0; }
+.list-row .main .name { font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-row .main .sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+.list-row .time { font-family: var(--num); font-size: 11px; color: var(--muted); text-align: right; }
+
+/* 图表区 (右侧) */
+.chart-box { width: 100%; height: calc(100% - 30px); }
+svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+/* 数字 KPI 横向 (右侧顶) */
+.kpi-h {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;
+}
+.kpi-h-cell {
+  text-align: center; padding: 8px 4px;
+  background: linear-gradient(180deg, rgba(58,200,224,0.06), transparent 70%), rgba(18, 34, 46, 0.42);
+  border-radius: 8px; border: 1px solid rgba(58, 200, 224, 0.12);
+}
+.kpi-h-cell .v { font-size: 22px; font-family: var(--num); font-weight: 700; line-height: 1.1; }
+.kpi-h-cell .l { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.kpi-h-cell .v.good { color: var(--green); } .kpi-h-cell .v.warn { color: var(--orange); } .kpi-h-cell .v.normal { color: var(--text); }
+
+/* 弹窗 (复用) */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(6, 19, 29, 0.8); backdrop-filter: blur(12px);
+  opacity: 0; transition: opacity 0.3s;
+}
+.modal-overlay.visible { display: flex; opacity: 1; }
+.modal-content {
+  position: relative; border-radius: 18px;
+  border: 1px solid rgba(58, 200, 224, 0.42);
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent 30%), linear-gradient(180deg, rgba(36, 53, 65, 0.92), rgba(18, 32, 44, 0.94));
+  box-shadow: 0 20px 70px rgba(0,0,0,0.5);
+  color: var(--text); transform: scale(0.95); transition: transform 0.3s;
+  max-height: 90vh; overflow: auto;
+}
+.modal-overlay.visible .modal-content { transform: scale(1); }
+.modal-close {
+  position: absolute; top: 20px; right: 20px; z-index: 10;
+  width: 36px; height: 36px; border: 1px solid rgba(255,255,255,0.15); border-radius: 50%;
+  background: rgba(255,255,255,0.08); color: var(--muted); font-size: 24px;
+  line-height: 34px; text-align: center; cursor: pointer; transition: all 0.2s;
+}
+.modal-close:hover { background: rgba(255,255,255,0.15); color: var(--text); transform: rotate(90deg); }
+.modal-header { padding: 24px 32px 16px; }
+.modal-title { margin: 0; font-size: 24px; font-weight: 700; color: #f2fbff; }
+.modal-subtitle { margin-top: 4px; font-size: 13px; color: var(--muted); }
+.modal-body { padding: 0 32px 28px; }
+
+/* 弹窗A 设备总览 */
+#modal-overview { width: 800px; }
+#modal-overview .modal-body { display: grid; gap: 14px; }
+
+/* 弹窗B 单设备 */
+#modal-device { width: 720px; }
+#modal-device .modal-body { display: grid; grid-template-columns: 220px 1fr; gap: 18px; }
+.device-photo {
+  width: 100%; height: 180px; border-radius: 10px;
+  background: #0a1c2b;
+  background-image: linear-gradient(135deg, rgba(58,200,224,0.12), transparent 50%);
+  border: 1px solid var(--panel-border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 12px;
+}
+.param-list { display: flex; flex-direction: column; gap: 10px; }
+.param-row { display: grid; grid-template-columns: 1fr 1fr; font-size: 13px; }
+.param-row .l { color: var(--muted); }
+.param-row .v { font-family: var(--num); font-weight: 700; text-align: right; font-size: 14px; }
+.param-row .v.warn { color: var(--orange); } .param-row .v.good { color: var(--green); }
+.actions { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btn {
+  height: 34px; border-radius: 8px; border: 1px solid var(--cyan);
+  background: rgba(58, 200, 224, 0.12); color: #c9f6ff;
+  font-size: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;
+}
+.btn:hover { background: rgba(58, 200, 224, 0.22); }
+.btn.primary { background: var(--cyan); color: #06131d; }
+
+/* 弹窗C 能耗 */
+#modal-energy { width: 720px; }
+#modal-energy .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+#modal-energy .kpi-row .kpi-cell { padding: 10px 4px; }
+
+/* 弹窗D 门禁(3D 楼栋点) */
+#modal-access { width: 460px; }
+#modal-access .modal-body { display: grid; gap: 12px; }
+.access-cam {
+  width: 100%; height: 180px; border-radius: 10px;
+  background: #0a1c2b linear-gradient(135deg, rgba(58,200,224,0.12), rgba(8,24,38,0.6));
+  border: 1px solid var(--panel-border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 12px; flex-direction: column; gap: 4px;
+}
+.access-cam .live { color: var(--green); font-size: 11px; }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <!-- ========== 顶部标题栏 ========== -->
+    <header class="topbar">
+      <div class="topbar-time">
+        <span class="date" id="topbar-date">2026年6月9日</span>
+        <span class="time" id="topbar-time">17:23:00</span>
+      </div>
+      <div class="topbar-title">
+        <h1>智慧运维 - 设备态势</h1>
+        <div class="en">GUANGZHOU RURAL CREDIT DATA CENTER · INTELLIGENT OPERATIONS</div>
+      </div>
+      <div class="topbar-weather">
+        <span class="icon">☁</span>
+        <span>多云</span>
+        <span class="temp">26°C</span>
+        <span class="gear">⚙</span>
+      </div>
+    </header>
+
+    <!-- ========== 中间三栏 ========== -->
+    <main class="main">
+      <!-- ===== 左侧 25% ===== -->
+      <aside class="side">
+        <!-- 1. 设备状态 KPI -->
+        <section class="panel-card">
+          <div class="panel-title">设备状态总览 <span class="extra">实时</span></div>
+          <div class="kpi-row4">
+            <div class="kpi-cell clickable" data-modal="overview" id="trigger-overview">
+              <div class="v good">96.8%</div>
+              <div class="l">健康度</div>
+            </div>
+            <div class="kpi-cell">
+              <div class="v normal">3,587</div>
+              <div class="l">设备总数</div>
+            </div>
+            <div class="kpi-cell">
+              <div class="v good">3,520</div>
+              <div class="l">在线设备</div>
+            </div>
+            <div class="kpi-cell clickable" data-modal="device" id="trigger-device">
+              <div class="v warn">21</div>
+              <div class="l">故障设备</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. 告警事件列表 -->
+        <section class="panel-card" style="flex: 1; min-height: 0;">
+          <div class="panel-title">告警事件 <span class="extra">最新 5 条</span></div>
+          <div class="list">
+            <div class="list-row clickable" data-modal="device">
+              <span class="tag">暖通</span>
+              <div class="main"><div class="name">冷冻泵 2# 振动偏高</div><div class="sub">已生成维修工单</div></div>
+              <span class="time">14:24</span>
+            </div>
+            <div class="list-row">
+              <span class="tag">配电</span>
+              <div class="main"><div class="name">低压柜回路温度预警</div><div class="sub">值班工程师确认中</div></div>
+              <span class="time">14:05</span>
+            </div>
+            <div class="list-row">
+              <span class="tag">给排水</span>
+              <div class="main"><div class="name">生活水泵切换次数异常</div><div class="sub">待现场复核</div></div>
+              <span class="time">13:47</span>
+            </div>
+            <div class="list-row">
+              <span class="tag">电梯</span>
+              <div class="main"><div class="name">C座客梯 3# 门机波动</div><div class="sub">维保单位已通知</div></div>
+              <span class="time">13:22</span>
+            </div>
+            <div class="list-row">
+              <span class="tag">弱电</span>
+              <div class="main"><div class="name">网络交换机端口丢包</div><div class="sub">自动恢复观察中</div></div>
+              <span class="time">13:08</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. 巡检完成度 -->
+        <section class="panel-card" style="height: 200px;">
+          <div class="panel-title">巡检完成情况 <span class="extra">今日</span></div>
+          <div class="chart-box">
+            <svg id="chart-patrol" data-chart='{"type":"hbars","labels":["暖通","水务","配电","电梯","弱电"],"values":[96,92,88,94,90],"max":100,"suffix":"%"}' viewBox="0 0 400 150"></svg>
+          </div>
+        </section>
+      </aside>
+
+      <!-- ===== 中间 40% 3D 场景 ===== -->
+      <section class="center">
+        <div class="center-bg"></div>
+        <div class="center-overlay"></div>
+
+        <!-- 3D 场景上的可点击标注点 -->
+        <div class="hotspot" style="left: 32%; top: 38%;" data-modal="access" data-name="东侧闸机">
+          <div class="hotspot-label">东侧闸机</div>
+        </div>
+        <div class="hotspot" style="left: 58%; top: 42%;" data-modal="access" data-name="西侧闸机">
+          <div class="hotspot-label">西侧闸机</div>
+        </div>
+        <div class="hotspot" style="left: 45%; top: 30%;" data-modal="device" data-name="主楼 F18 设备">
+          <div class="hotspot-label">主楼 F18</div>
+        </div>
+        <div class="hotspot" style="left: 28%; top: 65%;" data-modal="overview" data-name="冷冻机房">
+          <div class="hotspot-label">冷冻机房</div>
+        </div>
+        <div class="hotspot" style="left: 65%; top: 60%;" data-modal="energy" data-name="配电房">
+          <div class="hotspot-label">配电房</div>
+        </div>
+
+        <!-- 中间底部 4 个核心指标 -->
+        <div class="center-bottom">
+          <div class="center-stat">
+            <div class="num">96.8%</div>
+            <div class="lbl">设备健康度</div>
+          </div>
+          <div class="center-stat">
+            <div class="num">21</div>
+            <div class="lbl">未处理告警</div>
+          </div>
+          <div class="center-stat">
+            <div class="num">38</div>
+            <div class="lbl">今日工单</div>
+          </div>
+          <div class="center-stat">
+            <div class="num">72%</div>
+            <div class="lbl">能耗负荷</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 右侧 25% ===== -->
+      <aside class="side">
+        <!-- 1. 4 卡能耗 (顶) -->
+        <section class="panel-card">
+          <div class="panel-title">能耗负荷 <span class="extra">点击详情</span></div>
+          <div class="kpi-h clickable" id="trigger-energy" data-modal="energy" style="cursor: pointer;">
+            <div class="kpi-h-cell">
+              <div class="v normal">1,240</div>
+              <div class="l">总功率 (kW)</div>
+            </div>
+            <div class="kpi-h-cell">
+              <div class="v good">1.38</div>
+              <div class="l">PUE</div>
+            </div>
+            <div class="kpi-h-cell">
+              <div class="v normal">8,920</div>
+              <div class="l">今日用电 (kWh)</div>
+            </div>
+            <div class="kpi-h-cell">
+              <div class="v warn">4.2</div>
+              <div class="l">碳排放 (吨)</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. 工单分类 + 系统运行 -->
+        <section class="panel-card" style="height: 220px;">
+          <div class="panel-title">系统运行状态</div>
+          <div class="chart-box">
+            <svg id="chart-system" data-chart='{"type":"bars","labels":["冷机","配电","给水","电梯","新风"],"values":[92,88,84,96,78],"showValues":true}' viewBox="0 0 400 170"></svg>
+          </div>
+        </section>
+
+        <!-- 3. 工单趋势 -->
+        <section class="panel-card" style="height: 220px;">
+          <div class="panel-title">工单处理趋势 <span class="extra">近 7 日</span></div>
+          <div class="chart-box">
+            <svg id="chart-trend" data-chart='{"type":"line","labels":["周一","周二","周三","周四","周五","周六","周日"],"seriesA":[24,28,31,34,30,26,38],"seriesB":[20,23,26,29,27,24,31]}' viewBox="0 0 400 170"></svg>
+          </div>
+        </section>
+
+        <!-- 4. 故障工单列表 -->
+        <section class="panel-card" style="flex: 1; min-height: 0;">
+          <div class="panel-title">故障与工单 <span class="extra">点击详情</span></div>
+          <div class="list">
+            <div class="list-row clickable" data-modal="device">
+              <span class="tag">维修</span>
+              <div class="main"><div class="name">冷冻机房阀门执行器异常</div><div class="sub">维修工单 · 处理中</div></div>
+              <span class="time">14:30</span>
+            </div>
+            <div class="list-row">
+              <span class="tag">巡检</span>
+              <div class="main"><div class="name">配电房红外测温复核</div><div class="sub">巡检任务 · 待确认</div></div>
+              <span class="time">14:12</span>
+            </div>
+            <div class="list-row">
+              <span class="tag">保养</span>
+              <div class="main"><div class="name">新风机组滤网保养提醒</div><div class="sub">计划保养 · 今日到期</div></div>
+              <span class="time">13:58</span>
+            </div>
+            <div class="list-row">
+              <span class="tag">故障</span>
+              <div class="main"><div class="name">给排水液位计通讯中断</div><div class="sub">告警事件 · 已派单</div></div>
+              <span class="time">13:31</span>
+            </div>
+            <div class="list-row">
+              <span class="tag">电梯</span>
+              <div class="main"><div class="name">A座货梯状态检测异常</div><div class="sub">维保工单 · 待接单</div></div>
+              <span class="time">13:15</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <!-- ========== 底部 Tab 导航 ========== -->
+    <footer class="tabs">
+      <div class="tab"><span class="tab-icon">◉</span><span>综合态势</span></div>
+      <div class="tab"><span class="tab-icon">▦</span><span>协同办公</span></div>
+      <div class="tab"><span class="tab-icon">⚠</span><span>安防消防</span></div>
+      <div class="tab active"><span class="tab-icon">⚙</span><span>智慧运维</span></div>
+      <div class="tab"><span class="tab-icon">⚡</span><span>能耗环境</span></div>
+    </footer>
+  </div>
+
+  <!-- ===== 弹窗 ===== -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-content" id="modal-overview" style="display:none">
+      <div class="modal-close">&times;</div>
+      <header class="modal-header">
+        <h2 class="modal-title">设备健康度总览</h2>
+        <p class="modal-subtitle">实时统计园区内所有纳管设备的状态分布</p>
+      </header>
+      <div class="modal-body">
+        <div class="kpi-row4">
+          <div class="kpi-cell"><div class="v good">3,268</div><div class="l">健康</div></div>
+          <div class="kpi-cell"><div class="v normal">298</div><div class="l">关注</div></div>
+          <div class="kpi-cell"><div class="v warn">21</div><div class="l">故障</div></div>
+          <div class="kpi-cell"><div class="v bad" style="color:var(--red)">44</div><div class="l">离线</div></div>
+        </div>
+        <div style="height: 220px;">
+          <div class="panel-title">设备类型分布</div>
+          <div class="chart-box" style="height: 180px;">
+            <svg id="chart-modal-types" data-chart='{"type":"hbars","labels":["暖通","给排水","供配电","电梯","弱电","照明"],"values":[860,420,680,240,920,467],"max":1000,"suffix":"台"}' viewBox="0 0 700 180"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-content" id="modal-device" style="display:none">
+      <div class="modal-close">&times;</div>
+      <header class="modal-header">
+        <h2 class="modal-title">设备详情：冷冻机房阀门执行器</h2>
+        <p class="modal-subtitle">设备ID: CH-VAV-1F-024 · 所属系统: 暖通空调</p>
+      </header>
+      <div class="modal-body">
+        <div>
+          <div class="device-photo">[设备图片占位]</div>
+        </div>
+        <div>
+          <div class="param-list">
+            <div class="param-row"><span class="l">当前状态</span><span class="v warn">执行器异常</span></div>
+            <div class="param-row"><span class="l">运行时长</span><span class="v">2,480 h</span></div>
+            <div class="param-row"><span class="l">阀门开度</span><span class="v">85.2 %</span></div>
+            <div class="param-row"><span class="l">反馈信号</span><span class="v">4.6 mA</span></div>
+            <div class="param-row"><span class="l">供水温度</span><span class="v">7.2 °C</span></div>
+            <div class="param-row"><span class="l">回水温度</span><span class="v">12.8 °C</span></div>
+          </div>
+          <div class="actions">
+            <button class="btn">远程复位</button>
+            <button class="btn primary">生成工单</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-content" id="modal-energy" style="display:none">
+      <div class="modal-close">&times;</div>
+      <header class="modal-header">
+        <h2 class="modal-title">机电系统能耗分析</h2>
+        <p class="modal-subtitle">实时监测主要机电系统的能源消耗与负载情况</p>
+      </header>
+      <div class="modal-body">
+        <div class="kpi-row">
+          <div class="kpi-cell"><div class="v normal">1,240</div><div class="l">总功率 (kW)</div></div>
+          <div class="kpi-cell"><div class="v normal">8,920</div><div class="l">今日用电 (kWh)</div></div>
+          <div class="kpi-cell"><div class="v good">1.38</div><div class="l">PUE</div></div>
+          <div class="kpi-cell"><div class="v warn">4.2</div><div class="l">碳排放 (吨)</div></div>
+        </div>
+        <div style="height: 220px;">
+          <div class="panel-title">分系统功率占比</div>
+          <div class="chart-box" style="height: 180px;">
+            <svg id="chart-modal-energy" data-chart='{"type":"donut","percent":45,"caption":"冷机","rows":[["冷机",558,"cyan"],["配电",310,"orange"],["给排水",186,"green"],["电梯",124,"blue"],["其他",62,"muted"]]}' viewBox="0 0 700 180"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-content" id="modal-access" style="display:none">
+      <div class="modal-close">&times;</div>
+      <header class="modal-header">
+        <h2 class="modal-title" id="access-title">门禁详情</h2>
+        <p class="modal-subtitle" id="access-subtitle">实时监控门禁状态</p>
+      </header>
+      <div class="modal-body">
+        <div class="access-cam">
+          <div class="live">● 实时画面</div>
+          <div>[摄像头画面占位]</div>
+        </div>
+        <div class="param-list">
+          <div class="param-row"><span class="l">门禁状态</span><span class="v good">正常</span></div>
+          <div class="param-row"><span class="l">门禁个数</span><span class="v">30</span></div>
+          <div class="param-row"><span class="l">当日进入</span><span class="v normal">30</span></div>
+          <div class="param-row"><span class="l">在线人数</span><span class="v normal">187</span></div>
+        </div>
+        <div class="actions">
+          <button class="btn">查看历史</button>
+          <button class="btn primary">远程开门</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const C = { cyan:"#3ac8e0", green:"#68e0b6", orange:"#f0aa5a", red:"#ff7875", blue:"#8fb7ff", text:"#eaf0f5", muted:"#96a5af", grid:"rgba(150,165,175,.18)" };
+function color(n){ return C[n]||n||C.cyan; }
+function el(name, attrs){
+  const node = document.createElementNS("http://www.w3.org/2000/svg", name);
+  Object.entries(attrs||{}).forEach(([k,v])=>node.setAttribute(k,v));
+  return node;
+}
+function text(x,y,v,attrs){
+  const node=el("text",Object.assign({x,y},attrs||{}));
+  node.textContent=v; return node;
+}
+function grid(svg, count=4){
+  const w=svg.viewBox.baseVal.width, h=svg.viewBox.baseVal.height, p=20;
+  for(let i=1;i<=count;i++){
+    const y=p+(h-p*2)/count*i;
+    svg.appendChild(el("line",{x1:p,y1:y,x2:w-p,y2:y,stroke:C.grid,"stroke-width":1}));
+  }
+}
+function bars(svg,chart){
+  const values=chart.values, max=Math.max(...values)*1.15||1;
+  grid(svg);
+  const w=svg.viewBox.baseVal.width, h=svg.viewBox.baseVal.height;
+  const base=h-30, areaH=h-60, start=30;
+  const slot=(w-start*2)/values.length;
+  const barW=Math.min(28, slot*0.5);
+  values.forEach((v,i)=>{
+    const barH=Math.max(4, v/max*areaH);
+    const x=start+i*slot+(slot-barW)/2;
+    svg.appendChild(el("rect",{x,y:base-barH,width:barW,height:barH,rx:6,fill:C.cyan,opacity:.92}));
+    svg.appendChild(text(x+barW/2,base+18,chart.labels[i],{"text-anchor":"middle",fill:C.muted,"font-size":10,"font-family":"Microsoft YaHei"}));
+    if(chart.showValues) svg.appendChild(text(x+barW/2,base-barH-6,String(v),{"text-anchor":"middle",fill:C.text,"font-size":11,"font-family":"Bahnschrift","font-weight":700}));
+  });
+}
+function hbars(svg,chart){
+  const max=chart.max||Math.max(...chart.values)||1;
+  const w=svg.viewBox.baseVal.width;
+  const h=svg.viewBox.baseVal.height;
+  const slotH=(h-20)/chart.labels.length;
+  const trackX=90, trackW=w-150;
+  chart.labels.forEach((label,i)=>{
+    const y=10+i*slotH;
+    const barH=Math.min(14, slotH*0.5);
+    svg.appendChild(text(28,y+barH,label,{fill:C.muted,"font-size":11,"font-family":"Microsoft YaHei"}));
+    svg.appendChild(el("rect",{x:trackX,y:y+barH/2-barH/2,width:trackW,height:barH,rx:barH/2,fill:"rgba(150,165,175,.14)"}));
+    svg.appendChild(el("rect",{x:trackX,y:y+barH/2-barH/2,width:chart.values[i]/max*trackW,height:barH,rx:barH/2,fill:color()}));
+    svg.appendChild(text(w-8,y+barH,String(chart.values[i])+(chart.suffix||""),{fill:C.text,"font-size":11,"font-family":"Bahnschrift","text-anchor":"end","font-weight":700}));
+  });
+}
+function line(svg,chart){
+  grid(svg);
+  const w=svg.viewBox.baseVal.width, h=svg.viewBox.baseVal.height;
+  const all=chart.seriesB?chart.seriesA.concat(chart.seriesB):chart.seriesA;
+  const max=Math.max(...all)*1.18, min=Math.min(...all)*0.78;
+  const x=i=>30+i*((w-60)/(chart.seriesA.length-1));
+  const y=v=>(h-30)-((v-min)/(max-min||1))*(h-50);
+  function d(values){return values.map((v,i)=>(i===0?"M":"L")+x(i).toFixed(1)+" "+y(v).toFixed(1)).join(" ");}
+  svg.appendChild(el("path",{d:d(chart.seriesA),fill:"none",stroke:C.cyan,"stroke-width":2.5,"stroke-linecap":"round","stroke-linejoin":"round"}));
+  if(chart.seriesB) svg.appendChild(el("path",{d:d(chart.seriesB),fill:"none",stroke:C.orange,"stroke-width":2,"stroke-linecap":"round","stroke-linejoin":"round",opacity:.86}));
+  chart.seriesA.forEach((v,i)=>{
+    svg.appendChild(el("circle",{cx:x(i),cy:y(v),r:3,fill:C.cyan}));
+    svg.appendChild(text(x(i),h-6,chart.labels[i],{"text-anchor":"middle",fill:C.muted,"font-size":9,"font-family":"Microsoft YaHei"}));
+  });
+}
+function donut(svg,chart){
+  const h=svg.viewBox.baseVal.height;
+  const cx=90, cy=h/2, r=46;
+  const circ=2*Math.PI*r;
+  svg.appendChild(el("circle",{cx,cy,r,fill:"none",stroke:"rgba(150,165,175,.16)","stroke-width":16}));
+  svg.appendChild(el("circle",{cx,cy,r,fill:"none",stroke:C.cyan,"stroke-width":16,"stroke-linecap":"round","stroke-dasharray":(circ*chart.percent/100)+" "+circ,transform:`rotate(-90 ${cx} ${cy})`}));
+  svg.appendChild(text(cx,cy+4,chart.percent+"%",{"text-anchor":"middle",fill:C.text,"font-size":22,"font-weight":700,"font-family":"Bahnschrift"}));
+  svg.appendChild(text(cx,cy+24,chart.caption||"",{"text-anchor":"middle",fill:C.muted,"font-size":11,"font-family":"Microsoft YaHei"}));
+  const startX=200, slotH=(h-20)/chart.rows.length;
+  chart.rows.forEach((row,i)=>{
+    const y=12+i*slotH;
+    svg.appendChild(el("circle",{cx:startX,cy:y-3,r:5,fill:color(row[2])}));
+    svg.appendChild(text(startX+14,y+2,row[0],{fill:C.muted,"font-size":12,"font-family":"Microsoft YaHei"}));
+    svg.appendChild(text(svg.viewBox.baseVal.width-10,y+2,String(row[1]),{fill:C.text,"font-size":13,"font-family":"Bahnschrift","text-anchor":"end","font-weight":700}));
+  });
+}
+
+function renderAll(){
+  document.querySelectorAll("svg[data-chart]").forEach(svg=>{
+    if(svg.children.length>0) return;
+    const c=JSON.parse(svg.dataset.chart);
+    if(c.type==="bars") bars(svg,c);
+    if(c.type==="hbars") hbars(svg,c);
+    if(c.type==="line") line(svg,c);
+    if(c.type==="donut") donut(svg,c);
+  });
+}
+renderAll();
+
+// 弹窗交互
+const overlay=document.getElementById('modal-overlay');
+const modals={overview:document.getElementById('modal-overview'),device:document.getElementById('modal-device'),energy:document.getElementById('modal-energy'),access:document.getElementById('modal-access')};
+
+function openModal(id, name){
+  Object.values(modals).forEach(m=>m.style.display='none');
+  if(modals[id]){
+    modals[id].style.display='block';
+    if(id==='access' && name){
+      document.getElementById('access-title').textContent='门禁详情：'+name;
+      document.getElementById('access-subtitle').textContent='点击位置: '+name;
+    }
+    overlay.classList.add('visible');
+    renderAll();
+  }
+}
+function closeModal(){overlay.classList.remove('visible');}
+
+// 绑定所有 data-modal 元素
+document.querySelectorAll('[data-modal]').forEach(el=>{
+  el.addEventListener('click',e=>{
+    e.stopPropagation();
+    openModal(el.dataset.modal, el.dataset.name);
+  });
+});
+
+overlay.addEventListener('click',e=>{
+  if(e.target===overlay || e.target.classList.contains('modal-close')) closeModal();
+});
+
+// 时钟
+function updateClock(){
+  const now=new Date();
+  const y=now.getFullYear(), m=now.getMonth()+1, d=now.getDate();
+  const hh=String(now.getHours()).padStart(2,'0'), mm=String(now.getMinutes()).padStart(2,'0'), ss=String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('topbar-date').textContent=`${y}年${m}月${d}日`;
+  document.getElementById('topbar-time').textContent=`${hh}:${mm}:${ss}`;
+}
+setInterval(updateClock,1000); updateClock();
+</script>
+</body>
+</html>
