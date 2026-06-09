@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=2800, initial-scale=1">
+  <title>广东农信 IOC - 智慧运维交互原型 (带弹窗)</title>
+  <style>
+/* --- 原有样式 (无删改) --- */
+:root {
+  --board-w: 2800px; --board-h: 1420px; --panel-w: 1260px; --panel-h: 1420px; --gap: 280px;
+  --card-bg: rgba(36, 53, 65, 0.62); --card-bg-2: rgba(24, 41, 54, 0.62); --line: rgba(58, 200, 224, 0.26);
+  --cyan: #3ac8e0; --green: #68e0b6; --orange: #f0aa5a; --red: #ff7875; --blue: #8fb7ff;
+  --text: #eaf0f5; --muted: #96a5af; --radius: 22px;
+  --font: "Microsoft YaHei", "Noto Sans SC", "PingFang SC", Arial, sans-serif;
+  --num: "DIN Alternate", "Bahnschrift", "Microsoft YaHei", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body {
+  width: var(--board-w); height: var(--board-h); margin: 0; overflow: hidden;
+  background: radial-gradient(circle at 50% 18%, rgba(58, 200, 224, 0.10), transparent 34%), linear-gradient(90deg, #04111a 0%, #071722 50%, #04111a 100%);
+  font-family: var(--font); color: var(--text); letter-spacing: 0;
+}
+.board { width: var(--board-w); height: var(--board-h); display: grid; grid-template-columns: var(--panel-w) var(--gap) var(--panel-w); align-items: stretch; }
+.gap-band { position: relative; height: 100%; background: linear-gradient(90deg, rgba(58, 200, 224, 0.08), transparent 18%, transparent 82%, rgba(58, 200, 224, 0.08)), radial-gradient(circle at 50% 50%, rgba(58, 200, 224, 0.08), transparent 52%); }
+.gap-band::before { content: ""; position: absolute; top: 40px; bottom: 40px; left: 50%; width: 1px; background: linear-gradient(180deg, transparent, rgba(58, 200, 224, 0.28), transparent); }
+.panel {
+  position: relative; width: var(--panel-w); height: var(--panel-h); padding: 32px; display: grid; grid-template-rows: 92px 176px 292px 292px 404px;
+  gap: 20px; overflow: hidden; border-radius: 26px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 25%), radial-gradient(circle at 20% 8%, rgba(58, 200, 224, 0.18), transparent 30%), linear-gradient(180deg, rgba(56, 72, 82, 0.70), rgba(23, 38, 50, 0.76));
+  border: 1px solid rgba(58, 200, 224, 0.34); box-shadow: 0 18px 60px rgba(0, 0, 0, 0.36), inset 0 0 42px rgba(58, 200, 224, 0.05); backdrop-filter: blur(8px);
+}
+.panel::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgba(58, 200, 224, 0.12), transparent 18%, transparent 82%, rgba(58, 200, 224, 0.10)), linear-gradient(180deg, rgba(58, 200, 224, 0.12), transparent 30%); }
+.panel-header, .kpi-wrap, .chart-grid, .list-card { position: relative; z-index: 1; }
+.panel-header { display: grid; grid-template-columns: 1fr auto; align-items: start; padding: 6px 8px 0; border-bottom: 1px solid rgba(58, 200, 224, 0.26); }
+.section-kicker { display: flex; align-items: center; gap: 12px; height: 26px; font-size: 20px; color: var(--muted); }
+.section-kicker::before { content: ""; width: 15px; height: 15px; border-radius: 5px; border: 2px solid rgba(94, 224, 244, 0.72); background: rgba(58, 200, 224, 0.20); box-shadow: 0 0 15px rgba(58, 200, 224, 0.45); }
+h1 { margin: 6px 0 0; font-size: 44px; line-height: 54px; font-weight: 700; color: #f2fbff; text-shadow: 0 0 14px rgba(58, 200, 224, 0.34); }
+.panel-code { margin-top: 18px; font-family: var(--num); font-size: 22px; color: rgba(234, 240, 245, 0.72); }
+.kpi-wrap { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.kpi { min-width: 0; height: 176px; padding: 20px 18px 16px; border-radius: var(--radius); border: 1px solid rgba(58, 200, 224, 0.20); background: linear-gradient(180deg, rgba(58, 200, 224, 0.08), transparent 52%), rgba(18, 34, 46, 0.52); }
+.kpi-label { font-size: 23px; line-height: 30px; color: var(--muted); white-space: nowrap; }
+.kpi-value { margin-top: 12px; font-family: var(--num); font-size: 52px; line-height: 58px; font-weight: 700; color: var(--text); }
+.kpi-value.good { color: var(--green); } .kpi-value.warn { color: var(--orange); }
+.unit { margin-left: 6px; font-family: var(--font); font-size: 22px; color: var(--muted); font-weight: 400; }
+.micro { margin-top: 14px; width: 100%; height: 8px; border-radius: 999px; background: rgba(150, 165, 175, 0.15); overflow: hidden; }
+.micro span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--cyan), var(--green)); }
+.micro span.warn { background: linear-gradient(90deg, var(--orange), var(--red)); }
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; min-height: 0; }
+.card { position: relative; min-width: 0; min-height: 0; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--line); background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 25%), linear-gradient(180deg, var(--card-bg), var(--card-bg-2)); box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22); }
+.card.span-2 { grid-column: 1 / span 2; }
+.card::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(58, 200, 224, 0.10), transparent 38%); }
+.card-title { position: relative; height: 58px; padding: 18px 22px 0; font-size: 28px; line-height: 34px; font-weight: 700; color: #eaf8ff; }
+.card-title::after { content: ""; position: absolute; left: 22px; right: 22px; bottom: -8px; height: 1px; background: linear-gradient(90deg, rgba(58, 200, 224, 0.48), rgba(58, 200, 224, 0.08)); }
+.chart-box { position: relative; height: calc(100% - 58px); padding: 18px 22px 22px; }
+svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.list-card { min-height: 0; } .list-card .chart-box { padding: 16px 24px 22px; }
+.event-list { height: 100%; display: grid; grid-template-rows: repeat(5, 1fr); gap: 9px; }
+.event-row {
+  position: relative; min-height: 0; display: grid; grid-template-columns: 96px 1fr 142px; align-items: center; gap: 16px; padding: 8px 16px 8px 20px;
+  border-radius: 14px; border: 1px solid rgba(58, 200, 224, 0.10); background: linear-gradient(90deg, rgba(58, 200, 224, 0.055), transparent 48%), rgba(10, 25, 37, 0.24); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+.right .event-row { grid-template-columns: 112px 1fr 168px; }
+.event-row::before { content: ""; position: absolute; left: 10px; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 12px rgba(58, 200, 224, 0.46); }
+.event-row:nth-child(2)::before, .event-row:nth-child(4)::before { background: var(--green); box-shadow: 0 0 12px rgba(104, 224, 182, 0.38); }
+.event-row:nth-child(3)::before { background: var(--orange); box-shadow: 0 0 12px rgba(240, 170, 90, 0.38); }
+.tag { height: 30px; border-radius: 15px; display: flex; align-items: center; justify-content: center; color: #c9f6ff; font-size: 18px; border: 1px solid rgba(58, 200, 224, 0.24); background: linear-gradient(180deg, rgba(58, 200, 224, 0.12), rgba(58, 200, 224, 0.045)); white-space: nowrap; }
+.event-main { min-width: 0; }
+.event-name { font-size: 21px; line-height: 27px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.event-sub { display: block; margin-top: 2px; font-size: 17px; line-height: 22px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.event-time { display: flex; align-items: center; justify-content: flex-end; padding: 0; border: none; background: transparent; font-family: var(--num); font-size: 20px; color: rgba(200, 215, 223, 0.88); white-space: nowrap; }
+
+/* --- 新增样式: 弹窗 & 交互 --- */
+.clickable { cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.clickable:hover { transform: translateY(-4px); box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4); }
+
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: none; /* JS控制显示 */
+  align-items: center; justify-content: center;
+  background: rgba(6, 19, 29, 0.8);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.modal-overlay.visible { display: flex; opacity: 1; }
+
+.modal-content {
+  position: relative;
+  border-radius: 28px;
+  border: 1px solid rgba(58, 200, 224, 0.42);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.09), transparent 28%), radial-gradient(circle at 10% 10%, rgba(58, 200, 224, 0.22), transparent 38%), linear-gradient(180deg, rgba(42, 60, 72, 0.82), rgba(18, 32, 44, 0.86));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45), inset 0 0 50px rgba(58, 200, 224, 0.06);
+  color: var(--text);
+  transform: scale(0.95);
+  transition: transform 0.3s ease;
+}
+.modal-overlay.visible .modal-content { transform: scale(1); }
+
+.modal-close {
+  position: absolute; top: 28px; right: 28px; z-index: 10;
+  width: 44px; height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted); font-size: 32px; line-height: 42px; text-align: center;
+  cursor: pointer; transition: all 0.2s ease;
+}
+.modal-close:hover { background: rgba(255, 255, 255, 0.15); color: var(--text); transform: rotate(90deg); }
+
+.modal-header { padding: 32px 40px 24px; }
+.modal-title { margin: 0; font-size: 38px; font-weight: 700; color: #f2fbff; text-shadow: 0 0 12px rgba(58, 200, 224, 0.3); }
+.modal-subtitle { margin-top: 8px; font-size: 20px; color: var(--muted); }
+.modal-body { padding: 0 40px 40px; display: grid; gap: 24px; }
+
+/* 弹窗A: 设备总览 */
+#modal-overview { width: 1400px; }
+#modal-overview .modal-body { grid-template-columns: 1fr 1fr; }
+.status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.status-card { padding: 22px; background: rgba(0,0,0,0.18); border-radius: 18px; text-align: center; }
+.status-card .value { font-size: 48px; font-family: var(--num); font-weight: 700; }
+.status-card .label { margin-top: 8px; font-size: 20px; color: var(--muted); }
+.value.good { color: var(--green); } .value.warn { color: var(--orange); } .value.bad { color: var(--red); }
+
+/* 弹窗B: 单设备详情 */
+#modal-device-detail { width: 1600px; }
+#modal-device-detail .modal-body { grid-template-columns: 380px 1fr; }
+.device-photo { width: 100%; height: 260px; border-radius: 18px; background: #0a1c2b url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MCAxMDAiPjxwYXRoIGZpbGw9InJnYmEoNTgsIDIwMCwgMjI0LCAwLjA4KSIgZD0iTTgwIDBIMHYxMDBoODBabTAtMzBIMHYtNDBoODBaIi8+PC9zdmc+) center/cover; border: 1px solid var(--line); margin-bottom: 24px; }
+.param-list { display: flex; flex-direction: column; gap: 18px; }
+.param-row { display: grid; grid-template-columns: 1fr 1fr; align-items: center; font-size: 20px; }
+.param-label { color: var(--muted); }
+.param-value { font-family: var(--num); font-weight: 700; font-size: 22px; text-align: right; }
+.actions { margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.btn { height: 52px; border-radius: 14px; border: 1px solid var(--cyan); background: rgba(58, 200, 224, 0.12); color: #c9f6ff; font-size: 20px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+.btn:hover { background: rgba(58, 200, 224, 0.22); }
+.btn.primary { background: var(--cyan); color: #06131d; }
+.btn.primary:hover { background: #68e0b6; border-color: #68e0b6; }
+
+/* 弹窗C: 能耗分析 */
+#modal-energy { width: 1200px; }
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+.kpi-row .kpi { height: auto; padding: 24px; }
+.kpi-row .kpi-value { font-size: 42px; line-height: 48px; }
+</style>
+</head>
+<body>
+  <main class="board">
+
+    <section class="panel left">
+      <header class="panel-header">
+        <div class="title-block"> <div class="section-kicker">智慧运维</div> <h1>设备总览</h1> </div>
+        <div class="panel-code">PANEL 01</div>
+      </header>
+      <div class="kpi-wrap">
+        <div class="kpi"><div class="kpi-label">设备总数</div><div class="kpi-value normal">3587<span class="unit">台</span></div><div class="micro"><span style="width: 100%"></span></div></div>
+        <div class="kpi"><div class="kpi-label">在线设备</div><div class="kpi-value good">3520<span class="unit">台</span></div><div class="micro"><span style="width: 98%"></span></div></div>
+        <div class="kpi"><div class="kpi-label">故障设备</div><div class="kpi-value warn">21<span class="unit">台</span></div><div class="micro"><span class="warn" style="width: 20%"></span></div></div>
+        <div class="kpi"><div class="kpi-label">健康度</div><div class="kpi-value good">96.8<span class="unit">%</span></div><div class="micro"><span style="width: 97%"></span></div></div>
+      </div>
+      <div class="chart-grid">
+        <!-- 交互点 A -->
+        <article class="card clickable" id="trigger-overview">
+          <div class="card-title">设备健康度</div>
+          <div class="chart-box"><svg id="PANEL01_0" data-chart='{"type":"donut","title":"设备健康度","percent":97,"caption":"健康","rows":[["健康",3268,"green"],["关注",298,"cyan"],["故障",21,"orange"],["总计",3587,"blue"]]}' viewBox="0 0 560 230"></svg></div>
+        </article>
+        <article class="card">
+          <div class="card-title">各系统设备数</div>
+          <div class="chart-box"><svg id="PANEL01_1" data-chart='{"type":"hbars","title":"各系统设备数","labels":["暖通","给排水","供配电","电梯","弱电"],"values":[86,42,68,24,92],"max":100,"suffix":"%"}' viewBox="0 0 560 230"></svg></div>
+        </article>
+      </div>
+      <div class="chart-grid">
+        <article class="card">
+          <div class="card-title">近 7 日故障趋势</div>
+          <div class="chart-box"><svg id="PANEL01_2" data-chart='{"type":"line","title":"近 7 日故障趋势","labels":["周一","周二","周三","周四","周五","六","日"],"seriesA":[18,22,19,26,21,17,21],"seriesB":[12,15,13,18,14,11,12]}' viewBox="0 0 560 230"></svg></div>
+        </article>
+        <article class="card">
+          <div class="card-title">巡检完成情况</div>
+          <div class="chart-box"><svg id="PANEL01_3" data-chart='{"type":"bars","title":"巡检完成情况","labels":["暖通","水务","配电","电梯","弱电"],"values":[96,92,88,94,90],"alt":true,"showValues":true}' viewBox="0 0 560 230"></svg></div>
+        </article>
+      </div>
+      <article class="card list-card">
+        <div class="card-title">设备故障告警</div>
+        <div class="chart-box"><div class="event-list">
+            <div class="event-row"><span class="tag">暖通</span><div class="event-main"><div class="event-name">冷冻泵 2# 运行振动偏高</div><div class="event-sub">已生成维修工单</div></div><span class="event-time">14:24</span></div>
+            <div class="event-row"><span class="tag">配电</span><div class="event-main"><div class="event-name">低压柜回路温度预警</div><div class="event-sub">值班工程师确认中</div></div><span class="event-time">14:05</span></div>
+            <div class="event-row"><span class="tag">给排水</span><div class="event-main"><div class="event-name">生活水泵切换次数异常</div><div class="event-sub">待现场复核</div></div><span class="event-time">13:47</span></div>
+            <div class="event-row"><span class="tag">电梯</span><div class="event-main"><div class="event-name">C座客梯 3# 门机状态波动</div><div class="event-sub">维保单位已通知</div></div><span class="event-time">13:22</span></div>
+            <div class="event-row"><span class="tag">弱电</span><div class="event-main"><div class="event-name">网络交换机端口丢包告警</div><div class="event-sub">自动恢复观察中</div></div><span class="event-time">13:08</span></div></div></div>
+      </article>
+    </section>
+
+    <div class="gap-band"></div>
+
+    <section class="panel right">
+      <header class="panel-header">
+        <div class="title-block"> <div class="section-kicker">智慧运维</div> <h1>机电系统运行态势</h1> </div>
+        <div class="panel-code">PANEL 02</div>
+      </header>
+      <div class="kpi-wrap">
+        <div class="kpi"><div class="kpi-label">运行模块</div><div class="kpi-value good">5<span class="unit">类</span></div><div class="micro"><span style="width: 92%"></span></div></div>
+        <div class="kpi"><div class="kpi-label">当前故障</div><div class="kpi-value warn">21<span class="unit">项</span></div><div class="micro"><span class="warn" style="width: 20%"></span></div></div>
+        <div class="kpi"><div class="kpi-label">今日工单</div><div class="kpi-value normal">38<span class="unit">单</span></div><div class="micro"><span style="width: 64%"></span></div></div>
+        <!-- 交互点 C -->
+        <div class="kpi clickable" id="trigger-energy"><div class="kpi-label">能耗负荷</div><div class="kpi-value normal">72<span class="unit">%</span></div><div class="micro"><span style="width: 72%"></span></div></div>
+      </div>
+      <div class="chart-grid">
+        <article class="card"><div class="card-title">机电模块运行</div><div class="chart-box"><svg id="PANEL02_0" data-chart='{"type":"bars","labels":["冷机","配电","给排水","电梯","新风"],"values":[92,88,84,96,78],"alt":true,"showValues":true}' viewBox="0 0 560 230"></svg></div></article>
+        <article class="card"><div class="card-title">工单分类占比</div><div class="chart-box"><svg id="PANEL02_1" data-chart='{"type":"donut","percent":58,"caption":"巡检","rows":[["巡检",22,"cyan"],["维修",11,"orange"],["保养",5,"green"],["总计",38,"blue"]]}' viewBox="0 0 560 230"></svg></div></article>
+      </div>
+      <div class="chart-grid">
+        <article class="card"><div class="card-title">工单处理趋势</div><div class="chart-box"><svg id="PANEL02_2" data-chart='{"type":"line","labels":["周一","周二","周三","周四","周五","六","日"],"seriesA":[24,28,31,34,30,26,38],"seriesB":[20,23,26,29,27,24,31]}' viewBox="0 0 560 230"></svg></div></article>
+        <article class="card"><div class="card-title">系统运行负荷</div><div class="chart-box"><svg id="PANEL02_3" data-chart='{"type":"hbars","labels":["冷冻机房","配电","给排水","电梯","新风"],"values":[78,66,54,42,58],"max":100,"suffix":"%"}' viewBox="0 0 560 230"></svg></div></article>
+      </div>
+      <article class="card list-card">
+        <div class="card-title">故障与工单列表</div>
+        <div class="chart-box"><div class="event-list">
+            <!-- 交互点 B -->
+            <div class="event-row clickable" id="trigger-device-detail"><span class="tag">维修</span><div class="event-main"><div class="event-name">冷冻机房阀门执行器异常</div><div class="event-sub">维修工单 · 处理中</div></div><span class="event-time">14:30</span></div>
+            <div class="event-row"><span class="tag">巡检</span><div class="event-main"><div class="event-name">配电房红外测温复核</div><div class="event-sub">巡检任务 · 待确认</div></div><span class="event-time">14:12</span></div>
+            <div class="event-row"><span class="tag">保养</span><div class="event-main"><div class="event-name">新风机组滤网保养提醒</div><div class="event-sub">计划保养 · 今日到期</div></div><span class="event-time">13:58</span></div>
+            <div class="event-row"><span class="tag">故障</span><div class="event-main"><div class="event-name">给排水液位计通讯中断</div><div class="event-sub">告警事件 · 已派单</div></div><span class="event-time">13:31</span></div>
+            <div class="event-row"><span class="tag">电梯</span><div class="event-main"><div class="event-name">A座货梯状态检测异常</div><div class="event-sub">维保工单 · 待接单</div></div><span class="event-time">13:15</span></div></div></div>
+      </article>
+    </section>
+  </main>
+
+  <!-- === 弹窗 HTML 结构 (默认隐藏) === -->
+  <div class="modal-overlay" id="modal-overlay">
+    <!-- 弹窗 A: 设备总览 -->
+    <div class="modal-content" id="modal-overview">
+      <div class="modal-close">&times;</div>
+      <header class="modal-header">
+        <h2 class="modal-title">设备健康度总览</h2>
+        <p class="modal-subtitle">实时统计园区内所有纳管设备的状态分布</p>
+      </header>
+      <div class="modal-body">
+        <div class="card">
+          <div class="card-title">设备状态统计</div>
+          <div class="chart-box">
+            <svg id="MODAL_A_0" data-chart='{"type":"donut","percent":97,"caption":"健康","rows":[["健康",3268,"green"],["关注",298,"cyan"],["故障",21,"orange"],["离线",44,"red"],["总计",3587,"blue"]]}' viewBox="0 0 560 230"></svg>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">设备类型分布</div>
+          <div class="chart-box">
+             <svg id="MODAL_A_1" data-chart='{"type":"hbars","labels":["暖通空调","给排水","供配电","电梯","弱电安防","照明系统"],"values":[860,420,680,240,920,467],"max":1000, "suffix":"台"}' viewBox="0 0 560 230"></svg>
+          </div>
+        </div>
+        <div class="card span-2">
+           <div class="card-title">各楼层设备健康度</div>
+           <div class="chart-box"><svg id="MODAL_A_2" data-chart='{"type":"bars","labels":["B1","1F","2F","3F","4F","5F","6F","7F","8F","天台"],"values":[98,99,96,97,94,98,99,95,92,99],"alt":true,"showValues":true}' viewBox="0 0 1160 230"></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗 B: 单体设备详情 -->
+    <div class="modal-content" id="modal-device-detail">
+      <div class="modal-close">&times;</div>
+       <header class="modal-header">
+        <h2 class="modal-title">设备详情：冷冻机房阀门执行器</h2>
+        <p class="modal-subtitle">设备ID: CH-VAV-1F-024 · 所属系统: 暖通空调</p>
+      </header>
+      <div class="modal-body">
+        <div class="device-info">
+          <div class="device-photo"></div>
+          <div class="param-list">
+            <div class="param-row"><span class="param-label">当前状态</span><span class="param-value" style="color:var(--orange)">执行器异常</span></div>
+            <div class="param-row"><span class="param-label">运行时长</span><span class="param-value">2,480 <span class="unit">小时</span></span></div>
+            <div class="param-row"><span class="param-label">阀门开度</span><span class="param-value">85.2 <span class="unit">%</span></span></div>
+            <div class="param-row"><span class="param-label">反馈信号</span><span class="param-value">4.6 <span class="unit">mA</span></span></div>
+            <div class="param-row"><span class="param-label">供水温度</span><span class="param-value">7.2 <span class="unit">°C</span></span></div>
+            <div class="param-row"><span class="param-label">回水温度</span><span class="param-value">12.8 <span class="unit">°C</span></span></div>
+          </div>
+          <div class="actions">
+            <button class="btn">远程复位</button>
+            <button class="btn primary">生成工单</button>
+          </div>
+        </div>
+        <div class="card span-2" style="grid-column: 2 / span 1;">
+          <div class="card-title">近24小时开度趋势</div>
+          <div class="chart-box">
+             <svg id="MODAL_B_0" data-chart='{"type":"line","labels":["0","2","4","6","8","10","12","14","16","18","20","22","24"],"seriesA":[80,82,85,85,86,90,92,85,84,80,78,79,80]}' viewBox="0 0 1100 460"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗 C: 能耗分析 -->
+    <div class="modal-content" id="modal-energy">
+      <div class="modal-close">&times;</div>
+      <header class="modal-header">
+        <h2 class="modal-title">机电系统能耗分析</h2>
+        <p class="modal-subtitle">实时监测主要机电系统的能源消耗与负载情况</p>
+      </header>
+      <div class="modal-body">
+        <div class="kpi-row">
+          <div class="kpi"><div class="kpi-label">总功率</div><div class="kpi-value">1,240<span class="unit">kW</span></div></div>
+          <div class="kpi"><div class="kpi-label">今日用电</div><div class="kpi-value">8,920<span class="unit">kWh</span></div></div>
+          <div class="kpi"><div class="kpi-label">PUE</div><div class="kpi-value good">1.38</div></div>
+          <div class="kpi"><div class="kpi-label">碳排放</div><div class="kpi-value">4.2<span class="unit">吨</span></div></div>
+        </div>
+        <div class="card span-2">
+           <div class="card-title">分系统功率占比</div>
+           <div class="chart-box"><svg id="MODAL_C_0" data-chart='{"type":"donut","percent":45,"caption":"冷机","rows":[["冷机",558,"cyan"],["配电",310,"orange"],["给排水",186,"green"],["电梯",124,"blue"],["其他",62,"muted"]]}' viewBox="0 0 560 230"></svg></div>
+        </div>
+        <div class="card span-2">
+           <div class="card-title">24小时功率曲线</div>
+           <div class="chart-box"><svg id="MODAL_C_1" data-chart='{"type":"line","labels":["0","2","4","6","8","10","12","14","16","18","20","22"],"seriesA":[820,780,760,850,1120,1340,1420,1380,1260,1100,980,860],"seriesB":[420,400,390,450,620,740,820,780,700,580,510,450]}' viewBox="0 0 1100 230"></svg></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- === 原有图表脚本 (无删改) + 新增弹窗交互脚本 === -->
+  <script>
+    const C = { cyan: "#3ac8e0", green: "#68e0b6", orange: "#f0aa5a", red: "#ff7875", blue: "#8fb7ff", text: "#eaf0f5", muted: "#96a5af", grid: "rgba(150,165,175,.18)" };
+    function color(name) { return C[name] || name || C.cyan; }
+    function el(name, attrs, children) {
+      const node = document.createElementNS("http://www.w3.org/2000/svg", name);
+      Object.entries(attrs || {}).forEach(([key, value]) => node.setAttribute(key, value));
+      (children || []).forEach(child => node.appendChild(child));
+      return node;
+    }
+    function text(x, y, value, attrs) {
+      const node = el("text", Object.assign({ x, y }, attrs || {}));
+      node.textContent = value;
+      return node;
+    }
+    function grid(svg, count = 4) {
+      const w = svg.viewBox.baseVal.width;
+      const h = svg.viewBox.baseVal.height;
+      const p = 34; // padding
+      for(let i = 1; i <= count; i++) {
+        const y = p + (h - p*2) / count * i;
+        svg.appendChild(el("line", { x1: p, y1: y, x2: w - p, y2: y, stroke: C.grid, "stroke-width": 1 }));
+      }
+    }
+    function bars(svg, chart) {
+      const values = chart.values; const max = Math.max(...values) * 1.15 || 1;
+      grid(svg);
+      const w = svg.viewBox.baseVal.width; const h = svg.viewBox.baseVal.height;
+      const base = h - 48, areaH = h - 90, start = 58;
+      const slot = (w - start*2) / values.length;
+      const barW = Math.min(34, slot * 0.48);
+      values.forEach((value, i) => {
+        const barH = Math.max(8, value / max * areaH);
+        const x = start + i * slot + (slot - barW) / 2;
+        svg.appendChild(el("rect", { x, y: base - barH, width: barW, height: barH, rx: 10, fill: chart.alt && i % 2 ? C.green : C.cyan, opacity: chart.alt && i % 2 ? .82 : .96 }));
+        svg.appendChild(text(x + barW / 2, base + 30, chart.labels[i], { "text-anchor": "middle", fill: C.muted, "font-size": 18, "font-family": "Microsoft YaHei" }));
+        if (chart.showValues) svg.appendChild(text(x + barW / 2, base - barH - 10, String(value), { "text-anchor": "middle", fill: C.text, "font-size": 20, "font-family": "Bahnschrift", "font-weight": 700 }));
+      });
+    }
+    function hbars(svg, chart) {
+      const max = chart.max || Math.max(...chart.values) || 1;
+      const h = svg.viewBox.baseVal.height;
+      const slotH = (h - 40) / chart.labels.length;
+      chart.labels.forEach((label, i) => {
+        const y = 20 + i * slotH;
+        const barH = Math.min(22, slotH * 0.5);
+        svg.appendChild(text(34, y + barH, label, { fill: C.muted, "font-size": 20, "font-family": "Microsoft YaHei" }));
+        svg.appendChild(el("rect", { x: 140, y:y+barH/2, width: 306, height: barH, rx: barH/2, fill: "rgba(150,165,175,.14)" }));
+        svg.appendChild(el("rect", { x: 140, y:y+barH/2, width: chart.values[i] / max * 306, height: barH, rx: barH/2, fill: color(chart.colors && chart.colors[i]) }));
+        svg.appendChild(text(512, y + barH, String(chart.values[i]) + (chart.suffix || ""), { fill: C.text, "font-size": 19, "font-family": "Bahnschrift", "text-anchor": "end", "font-weight": 700 }));
+      });
+    }
+    function line(svg, chart) {
+      grid(svg);
+      const w = svg.viewBox.baseVal.width; const h = svg.viewBox.baseVal.height;
+      const all = chart.seriesB ? chart.seriesA.concat(chart.seriesB) : chart.seriesA;
+      const max = Math.max(...all) * 1.18; const min = Math.min(...all) * 0.78;
+      const x = i => 52 + i * ((w - 104) / (chart.seriesA.length - 1));
+      const y = value => (h - 48) - ((value - min) / (max - min || 1)) * (h - 92);
+      function d(values) { return values.map((value, i) => (i === 0 ? "M" : "L") + x(i).toFixed(1) + " " + y(value).toFixed(1)).join(" "); }
+      svg.appendChild(el("path", { d: d(chart.seriesA), fill: "none", stroke: C.cyan, "stroke-width": 5, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+      if (chart.seriesB) svg.appendChild(el("path", { d: d(chart.seriesB), fill: "none", stroke: C.orange, "stroke-width": 4, "stroke-linecap": "round", "stroke-linejoin": "round", opacity: .86 }));
+      chart.seriesA.forEach((value, i) => {
+        svg.appendChild(el("circle", { cx: x(i), cy: y(value), r: 6, fill: C.cyan }));
+        svg.appendChild(text(x(i), h-18, chart.labels[i], { "text-anchor": "middle", fill: C.muted, "font-size": 17, "font-family": "Microsoft YaHei" }));
+      });
+    }
+    function donut(svg, chart) {
+      const h = svg.viewBox.baseVal.height;
+      const cx = 136, cy = h / 2, r = 64;
+      const circ = 2 * Math.PI * r;
+      svg.appendChild(el("circle", { cx, cy, r, fill: "none", stroke: "rgba(150,165,175,.16)", "stroke-width": 24 }));
+      svg.appendChild(el("circle", { cx, cy, r, fill: "none", stroke: C.cyan, "stroke-width": 24, "stroke-linecap": "round", "stroke-dasharray": (circ * chart.percent / 100) + " " + circ, transform: `rotate(-90 ${cx} ${cy})` }));
+      svg.appendChild(el("circle", { cx, cy, r: 42, fill: "rgba(10,25,36,.45)", stroke: "rgba(58,200,224,.16)", "stroke-width": 1 }));
+      svg.appendChild(text(cx, cy - 2, chart.percent + "%", { "text-anchor": "middle", fill: C.text, "font-size": 42, "font-weight": 700, "font-family": "Bahnschrift" }));
+      svg.appendChild(text(cx, cy + 30, chart.caption || "占比", { "text-anchor": "middle", fill: C.muted, "font-size": 18, "font-family": "Microsoft YaHei" }));
+      const slotH = (h - 80) / chart.rows.length;
+      chart.rows.forEach((row, i) => {
+        const y = 50 + i * slotH;
+        svg.appendChild(el("circle", { cx: 286, cy: y - 6, r: 7, fill: color(row[2]) }));
+        svg.appendChild(text(306, y, row[0], { fill: C.muted, "font-size": 20, "font-family": "Microsoft YaHei" }));
+        svg.appendChild(text(498, y, String(row[1]), { fill: C.text, "font-size": 22, "font-family": "Bahnschrift", "text-anchor": "end", "font-weight": 700 }));
+      });
+    }
+
+    // --- 渲染所有图表 (页面+弹窗) ---
+    function renderAllCharts() {
+      document.querySelectorAll("svg[data-chart]").forEach(svg => {
+        if (svg.children.length > 0) return; // 已渲染则跳过
+        const chart = JSON.parse(svg.dataset.chart);
+        if (chart.type === "bars") bars(svg, chart);
+        if (chart.type === "hbars") hbars(svg, chart);
+        if (chart.type === "line") line(svg, chart);
+        if (chart.type === "donut") donut(svg, chart);
+      });
+    }
+    renderAllCharts();
+
+    // --- 新增: 弹窗交互逻辑 ---
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modals = {
+      overview: document.getElementById('modal-overview'),
+      'device-detail': document.getElementById('modal-device-detail'),
+      energy: document.getElementById('modal-energy'),
+    };
+
+    function openModal(modalId) {
+      // 隐藏所有弹窗内容
+      Object.values(modals).forEach(m => m.style.display = 'none');
+      // 显示指定弹窗内容
+      if (modals[modalId]) {
+        modals[modalId].style.display = 'block';
+        modalOverlay.classList.add('visible');
+        renderAllCharts(); // 渲染弹窗内可能存在的图表
+      }
+    }
+
+    function closeModal() {
+      modalOverlay.classList.remove('visible');
+    }
+
+    // 绑定触发器
+    document.getElementById('trigger-overview').addEventListener('click', () => openModal('overview'));
+    document.getElementById('trigger-device-detail').addEventListener('click', () => openModal('device-detail'));
+    document.getElementById('trigger-energy').addEventListener('click', () => openModal('energy'));
+    
+    // 绑定关闭事件
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay || e.target.classList.contains('modal-close')) {
+        closeModal();
+      }
+    });
+
+  </script>
+</body>
+</html>
