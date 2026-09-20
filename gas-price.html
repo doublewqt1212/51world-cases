@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>上海95号汽油价格走势 · 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(160deg, #0b1437 0%, #1a2456 45%, #0d1b4c 100%);
+    min-height: 100vh;
+    padding: 40px 24px 60px;
+    color: #e8ecf8;
+    overflow-x: hidden;
+  }
+  /* 背景光斑 */
+  .glow {
+    position: fixed; border-radius: 50%; filter: blur(120px); opacity: .35;
+    pointer-events: none; z-index: 0;
+    animation: float 12s ease-in-out infinite alternate;
+  }
+  .glow.g1 { width: 480px; height: 480px; background: #3b6cff; top: -120px; right: -100px; }
+  .glow.g2 { width: 380px; height: 380px; background: #00d4a6; bottom: -100px; left: -120px; animation-delay: -6s; }
+  @keyframes float {
+    from { transform: translate(0,0) scale(1); }
+    to   { transform: translate(40px, 30px) scale(1.08); }
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; position: relative; z-index: 1; }
+
+  /* 标题 */
+  .hero { text-align: center; margin-bottom: 36px; animation: fadeDown .9s cubic-bezier(.22,1,.36,1) both; }
+  .hero .tag {
+    display: inline-block; font-size: 12px; letter-spacing: .35em; color: #8fa3e8;
+    border: 1px solid rgba(143,163,232,.35); padding: 6px 18px 6px 22px; border-radius: 999px;
+    margin-bottom: 18px; backdrop-filter: blur(6px);
+  }
+  .hero h1 {
+    font-size: 38px; font-weight: 800; letter-spacing: .04em;
+    background: linear-gradient(92deg, #ffffff 20%, #8ab4ff 60%, #5eead4 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 40px rgba(90,140,255,.25);
+  }
+  .hero p { margin-top: 12px; font-size: 14px; color: #9aa8d8; letter-spacing: .08em; }
+  @keyframes fadeDown { from { opacity:0; transform: translateY(-24px);} to { opacity:1; transform:none;} }
+
+  /* 统计卡片 */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .card {
+    background: rgba(255,255,255,.055);
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 18px; padding: 20px 22px;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 10px 32px rgba(3,8,38,.45), inset 0 1px 0 rgba(255,255,255,.08);
+    transition: transform .35s cubic-bezier(.22,1,.36,1), box-shadow .35s;
+    animation: rise .8s cubic-bezier(.22,1,.36,1) both;
+  }
+  .card:hover { transform: translateY(-5px); box-shadow: 0 18px 44px rgba(3,8,38,.6), 0 0 0 1px rgba(120,160,255,.25); }
+  .card:nth-child(1){animation-delay:.05s}.card:nth-child(2){animation-delay:.12s}
+  .card:nth-child(3){animation-delay:.19s}.card:nth-child(4){animation-delay:.26s}
+  .card:nth-child(5){animation-delay:.33s}
+  @keyframes rise { from { opacity:0; transform: translateY(26px);} to { opacity:1; transform:none;} }
+  .card .label { font-size: 12px; color: #93a1d4; letter-spacing: .12em; margin-bottom: 10px; }
+  .card .value { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .card .unit { font-size: 13px; font-weight: 500; color: #8fa0d6; margin-left: 4px; }
+  .card .sub { margin-top: 8px; font-size: 12px; color: #7e8cc0; }
+  .v-now  { color:#5eead4; text-shadow: 0 0 24px rgba(94,234,212,.45); }
+  .v-up   { color:#ff7a7a; text-shadow: 0 0 24px rgba(255,122,122,.35); }
+  .v-max  { color:#ffb454; text-shadow: 0 0 24px rgba(255,180,84,.35); }
+  .v-min  { color:#7ab8ff; text-shadow: 0 0 24px rgba(122,184,255,.35); }
+  .v-next { color:#c9a6ff; text-shadow: 0 0 24px rgba(201,166,255,.35); }
+
+  /* 图表面板 */
+  .panel {
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 22px; padding: 26px 26px 14px;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 14px 40px rgba(3,8,38,.5), inset 0 1px 0 rgba(255,255,255,.07);
+    margin-bottom: 26px;
+    animation: rise .8s .35s cubic-bezier(.22,1,.36,1) both;
+  }
+  .panel h2 { font-size: 16px; font-weight: 700; color: #cdd7f5; letter-spacing: .06em; margin-bottom: 4px; display:flex; align-items:center; gap:10px;}
+  .panel h2::before { content:""; width: 8px; height: 8px; border-radius: 50%;
+    background: linear-gradient(135deg,#5eead4,#3b82f6); box-shadow: 0 0 12px rgba(94,234,212,.8); }
+  .panel .desc { font-size: 12px; color: #7e8cc0; margin-bottom: 10px; }
+  #chartLine { width: 100%; height: 420px; }
+  #chartBar  { width: 100%; height: 300px; }
+
+  /* 事件时间轴 */
+  .events { display:grid; grid-template-columns: repeat(auto-fit,minmax(230px,1fr)); gap:14px; }
+  .evt {
+    background: rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.09);
+    border-radius: 14px; padding: 14px 16px; font-size: 13px; line-height: 1.7; color:#b9c4e8;
+    transition: transform .3s, box-shadow .3s;
+  }
+  .evt:hover { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(3,8,38,.5); }
+  .evt b { color:#fff; }
+  .evt .d { font-size: 11px; color:#7e8cc0; letter-spacing:.1em; margin-bottom:4px; }
+
+  .footer { text-align:center; font-size: 11px; color:#69779f; margin-top: 34px; line-height: 2; letter-spacing:.05em; }
+  .footer a { color:#8fa3e8; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="glow g1"></div>
+<div class="glow g2"></div>
+
+<div class="wrap">
+  <div class="hero">
+    <div class="tag">SHANGHAI · 95# GASOLINE</div>
+    <h1>上海 95 号汽油价格走势</h1>
+    <p>2026 年 1 月 — 8 月 · 92 / 95 双油号对比 · 更新至 2026-08-05</p>
+  </div>
+
+  <div class="stats">
+    <div class="card">
+      <div class="label">当前价格</div>
+      <div class="value v-now"><span id="cNow">0.00</span><span class="unit">元/升</span></div>
+      <div class="sub">7月31日24时上调后执行</div>
+    </div>
+    <div class="card">
+      <div class="label">年内累计涨跌</div>
+      <div class="value v-up">+<span id="cYtd">0.00</span><span class="unit">元/升</span></div>
+      <div class="sub">+18.0% · 每吨累计 +1,575 元</div>
+    </div>
+    <div class="card">
+      <div class="label">年内最高</div>
+      <div class="value v-max"><span id="cMax">0.00</span><span class="unit">元/升</span></div>
+      <div class="sub">4月7日 · 年内"九元"峰值</div>
+    </div>
+    <div class="card">
+      <div class="label">年内最低</div>
+      <div class="value v-min"><span id="cMin">0.00</span><span class="unit">元/升</span></div>
+      <div class="sub">1月初 · 年初起点</div>
+    </div>
+    <div class="card">
+      <div class="label">下一调价窗口</div>
+      <div class="value v-next" style="font-size:26px">8月14日</div>
+      <div class="sub">24时 · 方向待观察</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>价格走势 · 92 / 95 双线对比 · 15 轮调价全记录</h2>
+    <div class="desc">上海 92 / 95 号汽油最高零售限价（元/升）· 两线走势完全同频，价差稳定在 0.48～0.60 元 · 当前 95# 8.44 / 92# 7.93</div>
+    <div id="chartLine"></div>
+  </div>
+
+  <div class="panel">
+    <h2>每轮调价幅度</h2>
+    <div class="desc">汽油每吨调整额（元/吨）· 红涨绿跌 · 全年"十涨四跌一搁浅"</div>
+    <div id="chartBar"></div>
+  </div>
+
+  <div class="panel">
+    <h2>关键节点</h2>
+    <div class="desc" style="margin-bottom:16px">驱动油价的核心事件</div>
+    <div class="events">
+      <div class="evt"><div class="d">3月9日 — 3月23日</div><b>地缘冲突冲击</b><br>美伊互相空袭、霍尔木兹海峡通航受阻、里海管道码头遇袭，两轮累计 +1,855 元/吨，95号冲上 9 元</div>
+      <div class="evt"><div class="d">4月7日</div><b>年内峰值 9.36 元</b><br>供应收紧 + 北美消费旺季预期，触及年内最高点</div>
+      <div class="evt"><div class="d">6月4日 — 7月3日</div><b>三连跌 -1,990 元/吨</b><br>全球供应过剩基本面回归，油价回落至 7.63 元阶段低点</div>
+      <div class="evt"><div class="d">7月17日 — 7月31日</div><b>两连涨反弹</b><br>产油国减产 + 美原油库存大幅去化，7月31日单次 +685 元/吨（约 +0.57 元/升），重回 8.44 元</div>
+      <div class="evt"><div class="d">8月14日 24时</div><b>下一窗口</b><br>新一轮计价周期 8/1 启动，WTI 83.6 / 布伦特 89.0 美元附近震荡，方向待观察</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    数据来源：国家发展改革委调价公告 · 汽车之家上海今日油价（2026-08-05：92# 7.93 / 95# 8.44 / 98# 10.44 / 0#柴油 7.62）<br>
+    历史每升价格按每吨调整额折算测算（±0.02元），实际以加油站挂牌价为准 · 罗斯整理 🌹 2026-08-05
+  </div>
+</div>
+
+<script>
+/* ===== 数字滚动动画 ===== */
+function countUp(id, target, decimals, dur) {
+  const el = document.getElementById(id);
+  const start = performance.now();
+  function tick(t) {
+    const p = Math.min((t - start) / dur, 1);
+    const e = 1 - Math.pow(1 - p, 3);
+    el.textContent = (target * e).toFixed(decimals);
+    if (p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+countUp('cNow', 8.44, 2, 1600);
+countUp('cYtd', 1.29, 2, 1600);
+countUp('cMax', 9.36, 2, 1600);
+countUp('cMin', 7.15, 2, 1600);
+
+/* ===== 数据 ===== */
+const dates = ['01/01','01/20','02/03','02/24','03/09','03/23','04/07','04/21','05/08','05/21','06/04','06/18','07/03','07/17','07/31'];
+const prices95 = [7.15, 7.22, 7.38, 7.53, 8.08, 9.01, 9.36, 8.91, 9.16, 9.22, 8.80, 8.39, 7.63, 7.87, 8.44];
+const prices92 = [6.67, 6.74, 6.90, 7.04, 7.56, 8.43, 8.76, 8.34, 8.59, 8.65, 8.26, 7.87, 7.16, 7.39, 7.93];
+const adjDates = ['01/06','01/20','02/03','02/24','03/09','03/23','04/07','04/21','05/08','05/21','06/04','06/18','07/03','07/17','07/31'];
+const adjVals  = [0, 85, 205, 175, 695, 1160, 420, -555, 320, 75, -525, -515, -950, 300, 685];
+
+/* ===== 折线图 ===== */
+const line = echarts.init(document.getElementById('chartLine'));
+line.setOption({
+  grid: { left: 50, right: 30, top: 40, bottom: 40 },
+  tooltip: {
+    trigger: 'axis',
+    backgroundColor: 'rgba(13,20,55,.92)', borderColor: 'rgba(120,150,255,.3)',
+    textStyle: { color: '#e8ecf8', fontSize: 13 },
+    formatter: p => {
+      const i = p[0].dataIndex;
+      let html = `<b>2026-${dates[i].replace('/','-')}</b>`;
+      html += `<br>95号：<b style="color:#7fd4ff">${prices95[i].toFixed(2)}</b> 元/升`;
+      html += `<br>92号：<b style="color:#5eead4">${prices92[i].toFixed(2)}</b> 元/升`;
+      html += `<br>价差：<b style="color:#ffb454">${(prices95[i]-prices92[i]).toFixed(2)}</b> 元`;
+      if (i > 0) {
+        const d95 = prices95[i] - prices95[i-1];
+        const d92 = prices92[i] - prices92[i-1];
+        html += `<br><span style="color:#8fa0d6;font-size:11px">较上轮 95# ${d95>=0?'+':''}${d95.toFixed(2)} / 92# ${d92>=0?'+':''}${d92.toFixed(2)}</span>`;
+      }
+      return html;
+    }
+  },
+  legend: {
+    data: ['95号汽油', '92号汽油'],
+    textStyle: { color: '#b9c4e8', fontSize: 12 },
+    icon: 'roundRect', itemWidth: 18, itemHeight: 4,
+    top: 0, right: 10
+  },
+  xAxis: {
+    type: 'category', data: dates, boundaryGap: false,
+    axisLine: { lineStyle: { color: 'rgba(140,160,220,.3)' } },
+    axisLabel: { color: '#8fa0d6', fontSize: 11 },
+    axisTick: { show: false }
+  },
+  yAxis: {
+    type: 'value', min: 6.4, max: 9.8,
+    splitLine: { lineStyle: { color: 'rgba(140,160,220,.12)', type: 'dashed' } },
+    axisLabel: { color: '#8fa0d6', fontSize: 11, formatter: '{value} 元' }
+  },
+  series: [{
+    name: '95号汽油', type: 'line', data: prices95,
+    smooth: 0.4, symbol: 'circle', symbolSize: 9,
+    lineStyle: {
+      width: 4, color: '#4f8dff',
+      shadowColor: 'rgba(79,141,255,.7)', shadowBlur: 18, shadowOffsetY: 8
+    },
+    itemStyle: {
+      color: '#7fd4ff', borderColor: '#fff', borderWidth: 2,
+      shadowColor: 'rgba(127,212,255,.9)', shadowBlur: 12
+    },
+    areaStyle: {
+      color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: 'rgba(79,141,255,.40)' },
+        { offset: 0.6, color: 'rgba(79,141,255,.10)' },
+        { offset: 1, color: 'rgba(79,141,255,0)' }
+      ])
+    },
+    markPoint: {
+      symbol: 'pin', symbolSize: 52,
+      label: { color: '#0b1437', fontWeight: 800, fontSize: 12 },
+      data: [
+        { coord: ['04/07', 9.36], value: '9.36', itemStyle: { color: '#ffb454' } },
+        { coord: ['07/03', 7.63], value: '7.63', itemStyle: { color: '#5eead4' } }
+      ]
+    },
+    markLine: {
+      silent: true, symbol: 'none',
+      lineStyle: { color: 'rgba(255,180,84,.5)', type: 'dashed' },
+      label: { color: '#ffb454', fontSize: 11, formatter: '9元线' },
+      data: [{ yAxis: 9.0 }]
+    },
+    animationDuration: 2200, animationEasing: 'cubicOut'
+  }, {
+    name: '92号汽油', type: 'line', data: prices92,
+    smooth: 0.4, symbol: 'diamond', symbolSize: 9,
+    lineStyle: {
+      width: 3.5, color: '#2dd4bf', type: 'solid',
+      shadowColor: 'rgba(45,212,191,.6)', shadowBlur: 14, shadowOffsetY: 6
+    },
+    itemStyle: {
+      color: '#5eead4', borderColor: '#fff', borderWidth: 2,
+      shadowColor: 'rgba(94,234,212,.9)', shadowBlur: 10
+    },
+    areaStyle: {
+      color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: 'rgba(45,212,191,.22)' },
+        { offset: 0.6, color: 'rgba(45,212,191,.06)' },
+        { offset: 1, color: 'rgba(45,212,191,0)' }
+      ])
+    },
+    animationDuration: 2200, animationEasing: 'cubicOut', animationDelay: 350
+  }]
+});
+
+/* ===== 柱状图 ===== */
+const bar = echarts.init(document.getElementById('chartBar'));
+bar.setOption({
+  grid: { left: 56, right: 30, top: 30, bottom: 40 },
+  tooltip: {
+    trigger: 'axis',
+    backgroundColor: 'rgba(13,20,55,.92)', borderColor: 'rgba(120,150,255,.3)',
+    textStyle: { color: '#e8ecf8', fontSize: 13 },
+    formatter: p => {
+      const v = p[0].value;
+      return `<b>2026-${p[0].axisValue.replace('/','-')} 24时</b><br>` +
+        (v === 0 ? '搁浅 · 不作调整' : `汽油每吨 <b style="color:${v>0?'#ff7a7a':'#5eead4'}">${v>0?'+':''}${v} 元</b>`);
+    }
+  },
+  xAxis: {
+    type: 'category', data: adjDates,
+    axisLine: { lineStyle: { color: 'rgba(140,160,220,.3)' } },
+    axisLabel: { color: '#8fa0d6', fontSize: 11 },
+    axisTick: { show: false }
+  },
+  yAxis: {
+    type: 'value',
+    splitLine: { lineStyle: { color: 'rgba(140,160,220,.12)', type: 'dashed' } },
+    axisLabel: { color: '#8fa0d6', fontSize: 11, formatter: '{value}' }
+  },
+  series: [{
+    type: 'bar', data: adjVals.map(v => ({
+      value: v,
+      itemStyle: {
+        borderRadius: v >= 0 ? [7,7,0,0] : [0,0,7,7],
+        color: v > 0
+          ? new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#ff8a8a'},{offset:1,color:'#e0483e'}])
+          : v < 0
+          ? new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#2dd4bf'},{offset:1,color:'#0e9f8a'}])
+          : 'rgba(150,160,200,.35)',
+        shadowColor: v > 0 ? 'rgba(255,100,90,.5)' : 'rgba(45,212,191,.5)',
+        shadowBlur: 10, shadowOffsetY: v > 0 ? 5 : -5
+      }
+    })),
+    barWidth: '58%',
+    animationDelay: i => i * 70, animationDuration: 1200, animationEasing: 'elasticOut'
+  }]
+});
+
+window.addEventListener('resize', () => { line.resize(); bar.resize(); });
+</script>
+</body>
+</html>
